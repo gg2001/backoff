@@ -13,12 +13,6 @@ func ExponentialBackoff(min time.Duration, max time.Duration, factor float64) Ba
 
 // Performs an operation with an exponential backoff using a custom success condition
 func ExponentialBackoffWithSuccess(min time.Duration, max time.Duration, factor float64, success Success) Backoff {
-	// Adjust the params
-	if min > max {
-		min = max
-	}
-	minf := float64(min)
-
 	// Return the backoff function
 	return func(ctx context.Context, operation Operation, onErr OnErr) error {
 		// Set the exit condition
@@ -33,8 +27,8 @@ func ExponentialBackoffWithSuccess(min time.Duration, max time.Duration, factor 
 			duration time.Duration = min
 		)
 
-		// Exit once the duration exceeds the max duration
-		for duration <= max {
+		// Exit once the duration exceeds the max duration, don't exit if max is zero
+		for duration <= max || max == 0 {
 			// Make a requst
 			err = operation()
 
@@ -60,7 +54,7 @@ func ExponentialBackoffWithSuccess(min time.Duration, max time.Duration, factor 
 				}
 
 				// Update the duration
-				duration = time.Duration(minf * math.Pow(factor, float64(attempts)))
+				duration = time.Duration(float64(min) * math.Pow(factor, float64(attempts)))
 			}
 		}
 

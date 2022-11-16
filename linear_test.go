@@ -8,7 +8,8 @@ import (
 )
 
 func TestLinearBackoff(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	attempts := 10
 	duration := 10 * time.Millisecond
@@ -80,5 +81,30 @@ func TestLinearBackoff(t *testing.T) {
 	}
 	if counter != 10 {
 		t.Fatal("invalid counter:", counter)
+	}
+}
+
+func BenchmarkLinearBackoff(b *testing.B) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	linear := LinearBackoff(-1, 0)
+
+	first := true
+	err := errors.New("test")
+	operation := func() error {
+		if first {
+			first = false
+			return err
+		} else {
+			first = true
+			return nil
+		}
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		linear(ctx, operation, nil)
 	}
 }
