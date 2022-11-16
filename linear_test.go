@@ -82,6 +82,35 @@ func TestLinearBackoff(t *testing.T) {
 	if counter != 10 {
 		t.Fatal("invalid counter:", counter)
 	}
+
+	// Success after arbitrary attempts
+	b = LinearBackoff(-1, duration)
+	counter = 0
+	start = time.Now()
+	elapsed = time.Duration(0)
+
+	err = b(ctx, func() error {
+		counter++
+
+		if counter > 1 {
+			elapsed = time.Since(start)
+			if elapsed < duration {
+				t.Fatal("unexpected duration elapsed:", elapsed)
+			}
+			start = time.Now()
+		}
+
+		if counter == 11 {
+			return nil
+		}
+		return errors.New("test")
+	}, nil)
+	if err != nil {
+		t.Fatal("unexpected err")
+	}
+	if counter != 11 {
+		t.Fatal("invalid counter:", counter)
+	}
 }
 
 func BenchmarkLinearBackoff(b *testing.B) {
